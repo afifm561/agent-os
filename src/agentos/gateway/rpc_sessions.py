@@ -935,7 +935,17 @@ async def _handle_sessions_send(params: dict | None, ctx: RpcContext) -> dict:
     if not isinstance(params, dict) or "message" not in params:
         raise ValueError("params.message is required")
 
-    message_text: str = params["message"]
+    # ``message`` is required here, but required is not the same as typed: the
+    # annotation below is a hint, not a check. A falsy non-string (0, false,
+    # null, []) reached ``normalize_incoming_text``, where ``text =
+    # message_text or ""`` turned it into an empty string, so the send
+    # succeeded with a message the caller never composed. A truthy non-string
+    # (an int, a non-empty list or dict) survived normalisation and later hit
+    # ``.lower()``, surfacing the Python error as a raw INTERNAL_ERROR. Same
+    # guard ``sessions.create`` already applies to its optional seed (#1885).
+    message_text = params["message"]
+    if not isinstance(message_text, str):
+        raise ValueError("params.message must be a string")
     source_hint = _normalize_session_send_source_hint(params)
     incoming_attachments = params.get("attachments", [])
     normalized_input = normalize_incoming_text(
