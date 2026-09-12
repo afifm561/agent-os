@@ -915,7 +915,13 @@ async def _handle_config_schema_lookup(params: dict | None, ctx: RpcContext) -> 
     from agentos.gateway.config import GatewayConfig
 
     schema = GatewayConfig.model_json_schema()
+    # Required is not the same as typed: ``path.split(".")`` on a non-string
+    # raised AttributeError, which the dispatcher turned into a raw
+    # INTERNAL_ERROR carrying the Python error string ('int' object has no
+    # attribute 'split'). Reject it as a client error instead.
     path = params["path"]
+    if not isinstance(path, str):
+        raise ValueError("params.path must be a string")
     parts = path.split(".")
 
     # Walk through the schema tree resolving $ref along the way
