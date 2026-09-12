@@ -1973,16 +1973,27 @@ async def _handle_sessions_delete(params: dict | None, ctx: RpcContext) -> dict:
     if storage is None:
         raise RpcUnavailableError("No session storage available")
 
-    # Support both single key and bulk keys
+    # Support both single key and bulk keys. Validate the shape rather than
+    # trusting it: a bare string sent as ``keys`` was iterated character by
+    # character, so a one-key delete answered ok with every character of the key
+    # listed as a deleted session while removing nothing, and an int raised a
+    # raw INTERNAL_ERROR out of ``for k in keys``.
     keys: list[str] = []
     if isinstance(params, dict):
         if "keys" in params:
-            keys = params["keys"]
+            raw_keys = params["keys"]
+            if not isinstance(raw_keys, list):
+                raise ValueError("params.keys must be an array of strings")
+            keys = raw_keys
         elif "key" in params:
             keys = [params["key"]]
 
     if not keys:
         raise ValueError("params.key or params.keys is required")
+
+    for entry in keys:
+        if not isinstance(entry, str) or not entry.strip():
+            raise ValueError("params.keys must contain non-empty strings")
 
     task_runtime = getattr(ctx, "task_runtime", None)
 
