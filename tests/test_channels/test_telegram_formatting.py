@@ -338,3 +338,75 @@ def test_a_url_inside_a_code_span_is_untouched() -> None:
     assert render_telegram_html("`https://x.test/a__b__c`") == (
         "<code>https://x.test/a__b__c</code>"
     )
+
+
+@pytest.mark.parametrize(
+    ("info", "language"),
+    [
+        ("c#", "c#"),
+        ("f#", "f#"),
+        ("vb.net", "vb.net"),
+        (".env", ".env"),
+        (".gitignore", ".gitignore"),
+        ("text/x-python", "text/x-python"),
+        ("python3", "python3"),
+        ("objective-c", "objective-c"),
+    ],
+)
+def test_fence_recognizes_an_info_string_beyond_word_characters(
+    info: str, language: str
+) -> None:
+    """A fence language is not restricted to word characters.
+
+    `_FENCE_RE` confined the info string to `[A-Za-z0-9_+-]`, so a block
+    tagged `c#`, `f#`, `vb.net`, `.env` or `text/x-python` was not a fence at
+    all: its backticks were rendered as literal text, and the closing fence was
+    then read as an opening fence with no language, producing an empty <pre>.
+    """
+    rendered = render_telegram_html(f"```{info}\nx = 1\n```")
+
+    assert rendered == f'<pre><code class="language-{language}">x = 1</code></pre>'
+    assert "`" not in rendered
+
+
+def test_fence_accepts_more_than_three_backticks() -> None:
+    """A fence is three *or more* backticks, which is how a body containing
+    a triple-backtick line is delimited."""
+    rendered = render_telegram_html("````python\nx = 1\n````")
+
+    assert rendered == '<pre><code class="language-python">x = 1</code></pre>'
+
+
+def test_fence_info_string_may_carry_attributes() -> None:
+    """Only the first word of the info string is the language."""
+    rendered = render_telegram_html('```python title="a"\nx = 1\n```')
+
+    assert rendered == '<pre><code class="language-python">x = 1</code></pre>'
+
+
+def test_unrecognized_fence_no_longer_swallows_the_rest_of_the_message() -> None:
+    """The visible damage of the missing recognition.
+
+    The closing fence was parsed as an opening fence, so everything after the
+    block was consumed into it: headings and prose silently became code.
+    """
+    markdown = "```c#\nx\n```\n\n# Heading after\n\nbody text"
+
+    rendered = render_telegram_html(markdown)
+
+    assert rendered == (
+        '<pre><code class="language-c#">x</code></pre>\n\n'
+        "<b>Heading after</b>\n\nbody text"
+    )
+
+
+def test_fence_language_cannot_break_out_of_the_class_attribute() -> None:
+    """The language is interpolated unescaped, so it is allowlisted.
+
+    A quote reaching the attribute would close it and let the rest of the
+    info string become markup.
+    """
+    rendered = render_telegram_html('```a"b\nx\n```')
+
+    assert rendered == '<pre><code class="language-ab">x</code></pre>'
+    assert 'a"b' not in rendered
