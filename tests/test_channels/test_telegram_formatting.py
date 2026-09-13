@@ -399,3 +399,39 @@ def test_code_span_keeps_interior_whitespace(markdown: str, expected: str) -> No
     present and the span is not all spaces; `.strip()` collapsed `` ` ` `` to
     an empty <code></code>."""
     assert render_telegram_html(markdown) == expected
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://en.wikipedia.org/wiki/Foo_(bar)",
+        "https://docs.python.org/3/library/stdtypes.html#str.split_(sep)",
+        "https://example.com/a_(b)/c",
+    ],
+)
+def test_link_href_keeps_balanced_parentheses(url: str) -> None:
+    """A link destination may contain balanced parentheses.
+
+    `_LINK_RE` excluded `)` from the destination, so a URL with balanced parens
+    was cut at the first one: `.../Foo_(bar)` became href `.../Foo_(bar` and the
+    surviving `)` was emitted as text after the anchor -- a link that resolves
+    to a different page than the one the author wrote, plus a stray character.
+    """
+    rendered = render_telegram_html(f"[test]({url})")
+
+    assert rendered == f'<a href="{url}">test</a>'
+
+
+def test_link_with_parentheses_does_not_leak_the_closing_paren() -> None:
+    """Nothing from inside the destination may survive as visible text."""
+    rendered = render_telegram_html("[x](https://en.wikipedia.org/wiki/Foo_(bar))")
+
+    assert rendered == '<a href="https://en.wikipedia.org/wiki/Foo_(bar)">x</a>'
+    assert ")" not in rendered.split("</a>")[-1]
+
+
+def test_plain_inline_keeps_a_parenthesised_url() -> None:
+    """The table-label path shares `_LINK_RE`, so it needs the same rule."""
+    assert _plain_inline("[t](https://en.wikipedia.org/wiki/Foo_(bar))") == (
+        "t (https://en.wikipedia.org/wiki/Foo_(bar))"
+    )

@@ -10,7 +10,7 @@ _FENCE_RE = re.compile(r"^\s*```(?P<language>[A-Za-z0-9_+-]{0,32})\s*$")
 _HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s+(?P<text>.+?)\s*#*\s*$")
 _ORDERED_LIST_RE = re.compile(r"^(?P<indent>\s*)(?P<number>\d+)[.)]\s+(?P<text>.+)$")
 _UNORDERED_LIST_RE = re.compile(r"^(?P<indent>\s*)[-+*]\s+(?P<text>.+)$")
-_LINK_RE = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)<]+)\)")
+_LINK_RE = re.compile(r"\[([^\]\n]+)\]\((https?://(?:[^\s()]|\([^\s()]*\))+)\)")
 # CommonMark's blockquote marker: up to 3 leading spaces, `>`, then at most
 # one space before the content. `>quote` (no space) and `>` alone (an empty
 # quote line, used to separate paragraphs within one quote) both match.
