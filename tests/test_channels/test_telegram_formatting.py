@@ -507,3 +507,69 @@ def test_fence_language_cannot_break_out_of_the_class_attribute() -> None:
 
     assert rendered == '<pre><code class="language-ab">x</code></pre>'
     assert 'a"b' not in rendered
+
+
+class TestTildeFences:
+    """A fence may be delimited by tildes, not only backticks.
+
+    Tildes were not recognised at all, and that was worse than leaving the block
+    unrendered: the *body* fell through to the inline renderer, so a code block
+    was formatted as prose — `**x**` inside a `~~~` block came out bold instead
+    of literal. `cli/tui/terminal/markdown_stream.py` and `skills/outline.py`
+    already treat `~~~` as a fence, so this module was the outlier.
+    """
+
+    @pytest.mark.parametrize(
+        ("markdown", "expected"),
+        [
+            ("~~~python\nx = 1\n~~~", '<pre><code class="language-python">x = 1</code></pre>'),
+            ("~~~\nx\n~~~", "<pre>x</pre>"),
+            ("~~~~python\nx\n~~~~", '<pre><code class="language-python">x</code></pre>'),
+            ('~~~python title="a"\nx\n~~~', '<pre><code class="language-python">x</code></pre>'),
+            ("~~~c#\nx\n~~~", '<pre><code class="language-c#">x</code></pre>'),
+            ("~~~.env\nA=1\n~~~", '<pre><code class="language-.env">A=1</code></pre>'),
+        ],
+    )
+    def test_a_tilde_block_renders_as_code(self, markdown: str, expected: str) -> None:
+        assert render_telegram_html(markdown) == expected
+
+    def test_a_tilde_block_body_is_literal(self) -> None:
+        """The consequence of the block not being recognised at all."""
+        rendered = render_telegram_html("~~~\n**not bold** and [not a link](https://x.test)\n~~~")
+
+        assert rendered == "<pre>**not bold** and [not a link](https://x.test)</pre>"
+        assert "<b>" not in rendered
+        assert "<a " not in rendered
+
+    def test_a_tilde_block_escapes_html(self) -> None:
+        assert render_telegram_html("~~~\n<script>x</script>\n~~~") == (
+            "<pre>&lt;script&gt;x&lt;/script&gt;</pre>"
+        )
+
+    @pytest.mark.parametrize(
+        ("markdown", "expected"),
+        [
+            # A ``` block is not closed by a line of tildes, nor the reverse.
+            ("```python\nx\n~~~", '<pre><code class="language-python">x\n~~~</code></pre>'),
+            ("~~~python\nx\n```", '<pre><code class="language-python">x\n```</code></pre>'),
+            # Closing run must be at least as long as the opening one.
+            ("````\nx\n````", "<pre>x</pre>"),
+            ("````\nx\n```", "<pre>x\n```</pre>"),
+            ("```\nx\n````", "<pre>x</pre>"),
+            # A fence inside a fence is content, whichever markers are used.
+            ("```\n~~~\n```", "<pre>~~~</pre>"),
+            ("~~~\n```\n~~~", "<pre>```</pre>"),
+            ("~~~\n```\ninner\n```\n~~~", "<pre>```\ninner\n```</pre>"),
+        ],
+    )
+    def test_fence_markers_do_not_cross_close(self, markdown: str, expected: str) -> None:
+        assert render_telegram_html(markdown) == expected
+
+    @pytest.mark.parametrize("markdown", ["~~gone~~", "a ~~b~~ c"])
+    def test_two_tildes_are_still_strikethrough(self, markdown: str) -> None:
+        """A fence is three or more, so the strikethrough marker is untouched."""
+        assert "<s>" in render_telegram_html(markdown)
+        assert "<pre>" not in render_telegram_html(markdown)
+
+    def test_strikethrough_inside_a_fence_stays_literal(self) -> None:
+        assert render_telegram_html("```\n~~x~~\n```") == "<pre>~~x~~</pre>"
