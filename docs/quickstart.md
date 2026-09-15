@@ -19,7 +19,9 @@ release assets are always on the
 [Releases page](https://github.com/use-agent-os/agent-os/releases/latest).
 
 The `recommended` extra includes Pilot Router dependencies and memory/search
-support used by the default product experience.
+support used by the default product experience. Concretely it pulls in
+`tiktoken`, `jieba`, `numpy`, `onnxruntime`, and `tokenizers` so the local
+Pilot Router and embedding-based memory work out of the box.
 
 If `agentos` is not found after install, open a new shell or run:
 
