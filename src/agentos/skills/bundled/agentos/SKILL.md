@@ -143,7 +143,7 @@ than reading a version out of `uv tool list` or `pip show`.
 | `configure x-search` | xAI X (Twitter) search: `--api-key-env`, `--x-search-model`, `--x-search-reasoning-effort`, `--no-x-search-enabled`; catalog via `onboard catalog x-search` |
 | `cost` | usage and estimated cost report; `savings` for the Pilot Router savings report (`--pdf`) |
 | `diagnostics` | `status`, `on`, `off` |
-| `migrate` | `openclaw`, `hermes` (`--source`, `--profile`, `--apply`, `--migrate-secrets`; dry-run without `--apply`) |
+|| `migrate` | `openclaw` (`--source`, `--config`, `--apply`, `--migrate-secrets`, `--overwrite`, `--preset`, `--include`, `--exclude`, `--skill-conflict`, `--persona-conflict`, `--json`), `hermes` (`--source`, `--profile`, `--config`, `--apply`, `--migrate-secrets`, `--overwrite`, `--preset`, `--include`, `--exclude`, `--skill-conflict`, `--json`); dry-run without `--apply` |
 | `agents` | `list`, `add`, `delete` (durable agents) |
 | `mcp-server` | `run` (MCP bridge) |
 | `replay`, `dist`, `onboard` | replay recorded turns / workspace inventory / setup status |

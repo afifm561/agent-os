@@ -16,37 +16,103 @@ available without `uv tool list` or `pip show`.
 
 ## Main Commands
 
-| Command | Purpose |
-| --- | --- |
-| `agentos init` | Initialize a workspace. |
-| `agentos upgrade` | Upgrade AgentOS and restart the managed gateway to match. |
-| `agentos doctor` | Diagnose readiness and print recovery steps. |
-| `agentos onboard` | Run or inspect first-run setup. |
-| `agentos auth` | Provider logins that are not API keys (`login`/`status`/`logout`; xAI today). |
-| `agentos configure` | Reconfigure provider, router, channels, search, x-search, image generation, or memory embedding. |
-| `agentos gateway` | Run and manage the gateway server. |
-| `agentos chat` | Start interactive terminal chat. |
-| `agentos agent` | Run a single automation-friendly agent turn. |
-| `agentos sessions` | List, inspect, rename, resume, abort, delete, or export sessions. |
-| `agentos projects` | Group sessions into projects with shared knowledge injected into every member session. |
-| `agentos skills` | List, search, view, install, update, publish, and inspect skills. |
-| `agentos memory` | Inspect and maintain memory. |
-| `agentos channels` | Configure and inspect messaging channels. |
-| `agentos providers` | Configure and inspect LLM providers. |
-| `agentos search` | Configure and use web search. |
-| `agentos sandbox` | Inspect or change default sandbox posture. |
-| `agentos cron` | Manage scheduled AgentOS runs. |
-| `agentos cost` | Inspect usage and estimated cost. |
-| `agentos cost savings` | Report what the Pilot Router saved against the priciest configured tier. |
-| `agentos context` | Show the fixed per-request context cost and what each tool profile would cost. |
-| `agentos diagnostics` | Enable or disable runtime diagnostics logging. |
-| `agentos replay` | Replay a recorded turn from the decision log. |
-| `agentos migrate` | Import state from external agent runtimes. |
-| `agentos models` | Inspect available models. |
-| `agentos agents` | Manage durable agents. |
-| `agentos mcp-server` | Run the AgentOS MCP server bridge. |
-| `agentos dist` | Emit a reproducible workspace-state inventory. |
-| `agentos reset` | Reset a session, rotating it to a fresh transcript. |
+|| Command | Purpose |
+|| --- | --- |
+|| `agentos init` | Initialize a workspace. |
+|| `agentos upgrade` | Upgrade AgentOS and restart the managed gateway to match. |
+|| `agentos doctor` | Diagnose readiness and print recovery steps. |
+|| `agentos onboard` | Run or inspect first-run setup. |
+|| `agentos auth` | Provider logins that are not API keys (`login`/`status`/`logout`; xAI today). |
+|| `agentos configure` | Reconfigure provider, router, channels, search, x-search, image generation, or memory embedding. |
+|| `agentos gateway` | Run and manage the gateway server. |
+|| `agentos chat` | Start interactive terminal chat. |
+|| `agentos agent` | Run a single automation-friendly agent turn. |
+|| `agentos sessions` | List, inspect, rename, resume, abort, delete, or export sessions. |
+|| `agentos projects` | Group sessions into projects with shared knowledge injected into every member session. |
+|| `agentos skills` | List, search, view, install, update, publish, and inspect skills. |
+|| `agentos memory` | Inspect and maintain memory. |
+|| `agentos channels` | Configure and inspect messaging channels. |
+|| `agentos providers` | Configure and inspect LLM providers. |
+|| `agentos search` | Configure and use web search. |
+|| `agentos sandbox` | Inspect or change default sandbox posture. |
+|| `agentos cron` | Manage scheduled AgentOS runs. |
+|| `agentos cost` | Inspect usage and estimated cost. |
+|| `agentos cost savings` | Report what the Pilot Router saved against the priciest configured tier. |
+|| `agentos context` | Show the fixed per-request context cost and what each tool profile would cost. |
+|| `agentos diagnostics` | Enable or disable runtime diagnostics logging. |
+|| `agentos replay` | Replay a recorded turn from the decision log. |
+|| `agentos migrate` | Import state from external agent runtimes. See [Migration](migration.md). |
+|| `agentos models` | Inspect available models. |
+|| `agentos agents` | Manage durable agents. |
+|| `agentos mcp-server` | Run the AgentOS MCP server bridge. |
+|| `agentos dist` | Emit a reproducible workspace-state inventory. |
+|| `agentos reset` | Reset a session, rotating it to a fresh transcript. |
+
+## Migration
+
+`agentos migrate` imports state from external agent runtimes into AgentOS.
+With no subcommand it auto-detects `~/.openclaw` and `~/.hermes` and either
+prompts (TTY) or prints discovered sources for `--source` selection (non-TTY,
+`--json`).
+
+```sh
+agentos migrate --help
+agentos migrate openclaw --help
+agentos migrate hermes --help
+```
+
+### Common Options
+
+All migrate commands accept the options below. Flags that do not apply to a
+given source are rejected before any migration runs.
+
+|| Flag | Description |
+|| --- | --- |
+|| `--source <dir>` | Source home directory (`~/.openclaw` or `~/.hermes` by default). Required for explicit subcommands when the default path does not exist. |
+|| `--config <path>` | AgentOS config path to write or preview. Defaults to the workspace config. |
+|| `--apply` | Apply the migration. Without this flag only a dry-run report is produced. |
+|| `--migrate-secrets` | Copy recognized secrets. Defaults to `false`. |
+|| `--overwrite` | Overwrite target workspace files after making item-level backups. |
+|| `--preset <preset>` | Migration preset: `user-data` or `full` (default `full`). |
+|| `--include <ids>` | Comma-separated migration option ids to include. |
+|| `--exclude <ids>` | Comma-separated migration option ids to exclude. |
+|| `--skill-conflict <mode>` | Skill conflict behavior: `skip` (default), `overwrite`, or `rename`. |
+|| `--json` | Emit machine-readable JSON instead of console output. |
+
+### `agentos migrate openclaw`
+
+Migrate OpenClaw state into AgentOS-native files.
+
+```sh
+agentos migrate openclaw --source <dir> [--apply]            # dry-run first
+agentos migrate openclaw --source <dir> --apply             # apply
+agentos migrate openclaw --source <dir> --preset user-data  # partial import
+```
+
+Additional options for OpenClaw:
+
+|| Flag | Description |
+|| --- | --- |
+|| `--persona-conflict <mode>` | How to resolve SOUL/USER/AGENTS conflicts when the destination already holds real user content: `prompt` (interactive, default), `use-agentos`, `use-openclaw`, `merge`, or `skip`. |
+
+OpenClaw-only conflict modes (`--persona-conflict`) are rejected on the Hermes
+subcommand and vice-versa.
+
+### `agentos migrate hermes`
+
+Migrate Hermes Agent state into AgentOS-native files.
+
+```sh
+agentos migrate hermes --source <dir> [--apply]              # default profile
+agentos migrate hermes --source <dir> --profile <name>       # named profile
+agentos migrate hermes --source <dir> --apply --json         # apply + JSON report
+```
+
+Additional options for Hermes:
+
+|| Flag | Description |
+|| --- | --- |
+|| `--profile <name>` | Hermes profile name under `~/.hermes/profiles`. When omitted the migrator uses the default profile. |
 
 ## Run Surfaces
 
