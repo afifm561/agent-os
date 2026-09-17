@@ -146,7 +146,9 @@ than reading a version out of `uv tool list` or `pip show`.
 || `migrate` | `openclaw` (`--source`, `--config`, `--apply`, `--migrate-secrets`, `--overwrite`, `--preset`, `--include`, `--exclude`, `--skill-conflict`, `--persona-conflict`, `--json`), `hermes` (`--source`, `--profile`, `--config`, `--apply`, `--migrate-secrets`, `--overwrite`, `--preset`, `--include`, `--exclude`, `--skill-conflict`, `--json`); dry-run without `--apply` |
 | `agents` | `list`, `add`, `delete` (durable agents) |
 | `mcp-server` | `run` (MCP bridge) |
-| `replay`, `dist`, `onboard` | replay recorded turns / workspace inventory / setup status |
+|| `replay` | replay recorded turns |
+|| `dist` | workspace inventory: `--output`, `-o` (output file path); prints JSON to stdout or writes to file |
+|| `onboard` | setup status |
 
 Built-in channel types are `discord`, `email`, `slack`, and `telegram`; use
 `agentos channels types` as the authoritative catalog. Config migration backs up the

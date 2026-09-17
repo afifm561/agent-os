@@ -45,10 +45,28 @@ available without `uv tool list` or `pip show`.
 || `agentos models` | Inspect available models. |
 || `agentos agents` | Manage durable agents. |
 || `agentos mcp-server` | Run the AgentOS MCP server bridge. |
-|| `agentos dist` | Emit a reproducible workspace-state inventory. |
+|| `agentos dist` | Emit a reproducible workspace-state inventory. See [Workspace Inventory](dist.md). |
 || `agentos reset` | Reset a session, rotating it to a fresh transcript. |
 
-## Migration
+## Workspace Inventory (dist)
+
+`agentos dist` emits a reproducible, versioned inventory of the current AgentOS
+install: bundled channels, bundled tools, gateway safety defaults, package
+metadata, and the package's Python requirement.
+
+```sh
+agentos dist --help
+agentos dist --output workspace-state.json
+agentos dist > workspace-state.json
+```
+
+### Options
+
+|| Flag | Description |
+|| --- | --- |
+|| `--output`, `-o <path>` | Write the workspace-state.json payload to this file instead of stdout. When omitted, prints the JSON payload to stdout. |
+
+## Run Surfaces
 
 `agentos migrate` imports state from external agent runtimes into AgentOS.
 With no subcommand it auto-detects `~/.openclaw` and `~/.hermes` and either
