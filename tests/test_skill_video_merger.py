@@ -156,3 +156,68 @@ class TestMergeSkipsAudioFilterForSilentInputs:
         assert "-af" in final_cmd
         assert "-c:a" in final_cmd
         assert "-an" not in final_cmd
+
+
+class TestMergeCreatesParentDirectory:
+    """merge() should create the output parent directory before ffmpeg runs (#2858)."""
+
+    def test_creates_parent_dir_when_output_path_has_new_subfolder(self, merger, tmp_path):
+        input_dir = tmp_path / "clips"
+        input_dir.mkdir()
+        (input_dir / "1_a.mp4").write_bytes(b"fake")
+        (input_dir / "2_b.mp4").write_bytes(b"fake")
+        # Nested subfolder that does not exist yet
+        output_path = tmp_path / "dist" / "output" / "final.mp4"
+
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(list(cmd))
+            if "ffprobe" in cmd[0]:
+                if "-select_streams" in cmd and "a" in cmd:
+                    return _completed("")  # no audio
+                return _completed("1920\n1080\n5.0\n")
+            return _completed()
+
+        # Only mock post-merge checks at module level so os.makedirs still
+        # reaches the real FS and can create the parent directory tree (#2858).
+        with (
+            patch.object(video_merger.subprocess, "run", side_effect=fake_run),
+            patch.object(video_merger.os.path, "exists", return_value=True),
+            patch.object(video_merger.os.path, "getsize", return_value=1024),
+        ):
+            ok = merger.merge(str(input_dir), str(output_path))
+
+        assert ok is True
+        assert (tmp_path / "dist" / "output").is_dir()
+        # ffmpeg final command should include the full output path
+        final_cmd = calls[-1]
+        assert str(output_path) in final_cmd
+
+    def test_creates_parent_dir_even_when_output_is_in_deeply_nested_path(self, merger, tmp_path):
+        input_dir = tmp_path / "clips"
+        input_dir.mkdir()
+        (input_dir / "1_a.mp4").write_bytes(b"fake")
+        output_path = tmp_path / "a" / "b" / "c" / "out.mp4"
+
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(list(cmd))
+            if "ffprobe" in cmd[0]:
+                if "-select_streams" in cmd and "a" in cmd:
+                    return _completed("")
+                return _completed("1920\n1080\n5.0\n")
+            return _completed()
+
+        with (
+            patch.object(video_merger.subprocess, "run", side_effect=fake_run),
+            patch("os.path.exists", return_value=True),
+            patch("os.path.getsize", return_value=1024),
+        ):
+            ok = merger.merge(str(input_dir), str(output_path))
+
+        assert ok is True
+        assert (tmp_path / "a" / "b" / "c").is_dir()
+        final_cmd = calls[-1]
+        assert str(output_path) in final_cmd

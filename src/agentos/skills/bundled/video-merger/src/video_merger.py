@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 from glob import glob
+from pathlib import Path
 
 # Common Windows install locations to probe when PATH inheritance fails
 # (the gateway can launch this skill as a subprocess on a shell whose PATH
@@ -182,6 +183,13 @@ class VideoMerger:
         video_list = self.get_sorted_videos(input_dir)
         total_segments = len(video_list)
         print(f"找到 {total_segments} 个视频片段，已按序号排序完成")
+
+        # Ensure the output parent directory exists before ffmpeg runs (#2858).
+        # merge_chunks() already does this; bring merge() in line so an output path
+        # in a new/nested subfolder no longer fails with "No such file or directory"
+        # before any frames are processed.
+        output_parent = os.path.dirname(os.path.abspath(output_path))
+        Path(output_parent).mkdir(parents=True, exist_ok=True)
 
         # 获取原始分辨率
         if not resolution:
